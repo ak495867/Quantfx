@@ -1,0 +1,14 @@
+build/
+dist/
+data/real/
+data/*.qfx
+data/*.journal
+data/*.checkpoint
+fixtures/*.qfx
+fixtures/*.pipe
+config/qfx.env
+*.token
+*.sha256
+
+__pycache__/
+*.pyc

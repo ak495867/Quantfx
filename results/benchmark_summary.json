@@ -1,0 +1,49 @@
+{
+  "folds": 20,
+  "mean_alpha_decay_pct": {
+    "AUDUSD": 71.09699403839821,
+    "EURUSD": 71.06761081703564,
+    "GBPUSD": 72.49897851053501,
+    "USDJPY": 70.9342489799968
+  },
+  "mean_candidate_shortfall_pips_per_unit": {
+    "BROKER_A": 0.49090521319409147,
+    "BROKER_B": 0.4683319445788774,
+    "BROKER_C": 0.45328202546942653
+  },
+  "mean_test_pnl_pips": {
+    "AUDUSD": 250.58999999999543,
+    "EURUSD": 252.7200000000027,
+    "GBPUSD": 317.9300000000156,
+    "USDJPY": 501.18999999999687
+  },
+  "mean_test_pnl_pips_per_bar": {
+    "AUDUSD": 1.6705999999999694,
+    "EURUSD": 1.6848000000000183,
+    "GBPUSD": 2.119533333333437,
+    "USDJPY": 3.341266666666646
+  },
+  "median_alpha_decay_pct": {
+    "AUDUSD": 73.79211200700149,
+    "EURUSD": 69.92182802164903,
+    "GBPUSD": 74.20448966840775,
+    "USDJPY": 69.62470449172538
+  },
+  "pairs": [
+    "AUDUSD",
+    "EURUSD",
+    "GBPUSD",
+    "USDJPY"
+  ],
+  "route_share": {
+    "BROKER_A": 0.0,
+    "BROKER_B": 0.0,
+    "BROKER_C": 0.9997467126210411
+  },
+  "ticks": {
+    "AUDUSD": 1477644,
+    "EURUSD": 2176113,
+    "GBPUSD": 2146970,
+    "USDJPY": 3758424
+  }
+}

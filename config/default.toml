@@ -1,0 +1,40 @@
+engine_name = "quantfx"
+architecture = "x86_64"
+price_scale = 100000
+quantity_scale = 100
+mode = "paper"
+market_adapter = "./adapters/market_adapter"
+broker_adapter = "./adapters/broker_adapter"
+input_format = "canonical_csv"
+output_format = "qfx"
+
+[instrument.EURUSD]
+price_scale = 100000
+quantity_scale = 100
+min_quantity = 1000
+max_quantity = 1000000
+max_spread = 500
+
+[risk]
+max_gross_position = 1000000
+max_net_position = 1000000
+max_order_quantity = 100000
+max_daily_loss = 5000000
+max_drawdown = 20000000
+min_cash = 1000
+max_orders_per_second = 10
+stale_quote_ns = 5000000000
+max_price_deviation = 1000
+
+[simulation]
+slippage_units = 2
+commission_units = 0
+swap_units_per_day = 0
+latency_ns = 0
+partial_fill = false
+
+[recovery]
+journal_path = "./data/live.journal"
+checkpoint_path = "./data/live.checkpoint"
+require_reconciliation = true
+require_armed_token = true

@@ -1,0 +1,59 @@
+{
+  "run_date_utc": "2026-08-26T08:32:00Z",
+  "environment": {
+    "os": "Linux 6.1.102 x86_64",
+    "python": "3.12.3",
+    "nasm": "2.16.01",
+    "make": "GNU Make 4.3"
+  },
+  "data": {
+    "provider": "HistData",
+    "period": "January 2024",
+    "pairs": ["AUDUSD", "EURUSD", "GBPUSD", "USDJPY"],
+    "timezone_interpretation": "fixed UTC-05:00",
+    "total_ticks": 9559151,
+    "manifest": "results/parquet_manifest.json"
+  },
+  "parameters": {
+    "shortfall_quantity": 100000,
+    "shortfall_sample_step": 1000,
+    "walk_forward_bar_interval": "5min",
+    "walk_forward_train_bars": 500,
+    "walk_forward_test_bars": 150,
+    "walk_forward_purge_bars": 5,
+    "walk_forward_embargo_bars": 5,
+    "walk_forward_folds_per_pair": 5
+  },
+  "validation": {
+    "python_syntax": "PASS",
+    "make_check": "PASS",
+    "platform_checks": "PASS",
+    "runtime_checks": "PASS",
+    "kill_switch_static_and_simulation": "PASS",
+    "qemu_firmware": "SKIPPED_QEMU_UNAVAILABLE",
+    "hardware_interrupt_executed": false,
+    "privileged_trip_executed": false
+  },
+  "artifact_sha256": {
+    "BENCHMARK_REPORT.md": "8cec75d53cde2c2afce75bfb77d5bc03066212ca7946839413dfd757e9937268",
+    "docs/usage.md": "1447b2d9e292ffe2478051911e056cf14a5ca7237a48a20eee8ac53e42c5e86d",
+    "Makefile": "16f468dbac401f21e908875cc89573d791024cc1128bbd3df7caf4f51d9cb3a2",
+    "benchmark_sources.md": "1c49be6deff29b4c0ce7e417e330b208c4d44bfe0c700a376911a955bbd3cf7b",
+    "README.md": "aa42defe38706df73e91a77c971ada5cf06bc23e59f3f2226f46be99822f082c",
+    ".gitignore": "8593ab58bc62f41a626c3ec9fedb0ed29984c704b27e01a74af316b5fd974077",
+    "research/real_shortfall_benchmark.py": "792ba11bf395b666ecd33d62a6ccb413cb7957e3b370a24405766ac1c511ff7e",
+    "research/parquet_walk_forward.py": "28a647f0faee32182b9ba432a165245c6ee30c0effa3a8191edeee7c6ed5e0e9",
+    "research/make_benchmark_visuals.py": "795ddf72bb94156b81129e2138d5084334ffa9fd0315338323378718a33cd6ea",
+    "research/benchmark_security_checks.py": "4e8a081f01ff67e69de8ef06e88492bf56dc2f7ac3c4d57f8675e7a7abe96724",
+    "tests/kill_switch_checks.sh": "5df6be908cf1c67c8cdd2c9ebb1055ad87949451bce775c9c384610ee6b24455",
+    "tests/kill_switch_harness.asm": "a391abcb86ba5be324b1e781a750c33bc76e12dbe6b0f170255a6e5d93ee62f8",
+    "results/parquet_manifest.json": "acfa11cc52a109c9e5690a0657f8ed6917b4edcee3ce81ddcfe169119c981e20",
+    "results/shortfall.json": "ffece0e7c758d403d332b096c7754fa0fa2d69c4b33f4d8d242a6ab2ce06ebf3",
+    "results/walk_forward.json": "9f895f58e54fd0297b2dd43b19f9689b97e637079e83588a364bf7b483509676",
+    "results/benchmark_summary.json": "5e055697573c5395963141e36d07692e7662ba50de36990b0f1bf74095a6331a",
+    "results/audit_kill_switch.json": "50d222c32b596f307aecacffb00da4f48d943a02ca0305090631d5600a8637e4",
+    "figures/shortfall_by_broker.png": "e52d3d3c401a99bc34a1cf96adebf51f41ed26e97f353c10bf98d7f462dbc489",
+    "figures/routing_share.png": "2143fcb9de6628efa5a23446549bef2f934f99d8c936547df3cd998b8e56e9b5",
+    "figures/oos_alpha_decay.png": "ff7fed2705347c0203bad48aeefac6a897dfba73c936d98283a867458eb41fbc"
+  }
+}

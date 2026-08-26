@@ -1,0 +1,241 @@
+{
+  "model": "deterministic_multi_broker_shortfall",
+  "brokers": {
+    "BROKER_A": {
+      "latency_us": 55.0,
+      "slippage": 1e-05,
+      "fee": 5e-06,
+      "reject_ppm": 700
+    },
+    "BROKER_B": {
+      "latency_us": 95.0,
+      "slippage": 8e-06,
+      "fee": 4e-06,
+      "reject_ppm": 900
+    },
+    "BROKER_C": {
+      "latency_us": 180.0,
+      "slippage": 4e-06,
+      "fee": 6e-06,
+      "reject_ppm": 250
+    }
+  },
+  "files": [
+    {
+      "pair": "AUDUSD",
+      "ticks": 1477644,
+      "quantity": 100000,
+      "elapsed_seconds": 5.353444017004222,
+      "ticks_per_second": 276017.4562966453,
+      "mean_processing_us": 3.6229592628564267,
+      "routed_orders": {
+        "BROKER_A": 0,
+        "BROKER_B": 0,
+        "BROKER_C": 1477268
+      },
+      "brokers": {
+        "BROKER_A": {
+          "orders": 1477644,
+          "accepted": 0,
+          "shortfall": 0.0,
+          "candidate_count": 1476597,
+          "candidate_shortfall": 10376833.999999924,
+          "latency_us": 55.0,
+          "mean_shortfall_per_order": null,
+          "mean_shortfall_per_unit": null,
+          "p95_shortfall_per_unit": null,
+          "candidate_mean_shortfall_per_order": 7.027532901665061,
+          "candidate_mean_shortfall_per_unit": 7.027532901665061e-05
+        },
+        "BROKER_B": {
+          "orders": 1477644,
+          "accepted": 0,
+          "shortfall": 0.0,
+          "candidate_count": 1476302,
+          "candidate_shortfall": 9931908.899994323,
+          "latency_us": 95.0,
+          "mean_shortfall_per_order": null,
+          "mean_shortfall_per_unit": null,
+          "p95_shortfall_per_unit": null,
+          "candidate_mean_shortfall_per_order": 6.727559063114676,
+          "candidate_mean_shortfall_per_unit": 6.727559063114677e-05
+        },
+        "BROKER_C": {
+          "orders": 1477644,
+          "accepted": 1477268,
+          "shortfall": 9642886.500000006,
+          "candidate_count": 1477268,
+          "candidate_shortfall": 9642886.500000006,
+          "latency_us": 180.0,
+          "mean_shortfall_per_order": 6.527513288042526,
+          "mean_shortfall_per_unit": 6.527513288042525e-05,
+          "p95_shortfall_per_unit": 7.500000000009676e-05,
+          "candidate_mean_shortfall_per_order": 6.527513288042526,
+          "candidate_mean_shortfall_per_unit": 6.527513288042525e-05
+        }
+      }
+    },
+    {
+      "pair": "EURUSD",
+      "ticks": 2176113,
+      "quantity": 100000,
+      "elapsed_seconds": 7.930300954962149,
+      "ticks_per_second": 274404.8444515037,
+      "mean_processing_us": 3.6442505306306012,
+      "routed_orders": {
+        "BROKER_A": 0,
+        "BROKER_B": 0,
+        "BROKER_C": 2175563
+      },
+      "brokers": {
+        "BROKER_A": {
+          "orders": 2176113,
+          "accepted": 0,
+          "shortfall": 0.0,
+          "candidate_count": 2174576,
+          "candidate_shortfall": 6479433.500000647,
+          "latency_us": 55.0,
+          "mean_shortfall_per_order": null,
+          "mean_shortfall_per_unit": null,
+          "p95_shortfall_per_unit": null,
+          "candidate_mean_shortfall_per_order": 2.9796307418092756,
+          "candidate_mean_shortfall_per_unit": 2.9796307418092756e-05
+        },
+        "BROKER_B": {
+          "orders": 2176113,
+          "accepted": 0,
+          "shortfall": 0.0,
+          "candidate_count": 2174144,
+          "candidate_shortfall": 5825938.300233703,
+          "latency_us": 95.0,
+          "mean_shortfall_per_order": null,
+          "mean_shortfall_per_unit": null,
+          "p95_shortfall_per_unit": null,
+          "candidate_mean_shortfall_per_order": 2.6796469324174033,
+          "candidate_mean_shortfall_per_unit": 2.6796469324174032e-05
+        },
+        "BROKER_C": {
+          "orders": 2176113,
+          "accepted": 2175563,
+          "shortfall": 5394647.499998743,
+          "candidate_count": 2175563,
+          "candidate_shortfall": 5394647.499998743,
+          "latency_us": 180.0,
+          "mean_shortfall_per_order": 2.479655840809364,
+          "mean_shortfall_per_unit": 2.479655840809364e-05,
+          "p95_shortfall_per_unit": 3.0000000000024002e-05,
+          "candidate_mean_shortfall_per_order": 2.479655840809364,
+          "candidate_mean_shortfall_per_unit": 2.479655840809364e-05
+        }
+      }
+    },
+    {
+      "pair": "GBPUSD",
+      "ticks": 2146970,
+      "quantity": 100000,
+      "elapsed_seconds": 7.995065070921555,
+      "ticks_per_second": 268536.90132037015,
+      "mean_processing_us": 3.7238829936708733,
+      "routed_orders": {
+        "BROKER_A": 0,
+        "BROKER_B": 0,
+        "BROKER_C": 2146427
+      },
+      "brokers": {
+        "BROKER_A": {
+          "orders": 2146970,
+          "accepted": 0,
+          "shortfall": 0.0,
+          "candidate_count": 2145452,
+          "candidate_shortfall": 13236003.00000021,
+          "latency_us": 55.0,
+          "mean_shortfall_per_order": null,
+          "mean_shortfall_per_unit": null,
+          "p95_shortfall_per_unit": null,
+          "candidate_mean_shortfall_per_order": 6.169330751748448,
+          "candidate_mean_shortfall_per_unit": 6.169330751748448e-05
+        },
+        "BROKER_B": {
+          "orders": 2146970,
+          "accepted": 0,
+          "shortfall": 0.0,
+          "candidate_count": 2145026,
+          "candidate_shortfall": 12589943.699657701,
+          "latency_us": 95.0,
+          "mean_shortfall_per_order": null,
+          "mean_shortfall_per_unit": null,
+          "p95_shortfall_per_unit": null,
+          "candidate_mean_shortfall_per_order": 5.869366478381941,
+          "candidate_mean_shortfall_per_unit": 5.8693664783819405e-05
+        },
+        "BROKER_C": {
+          "orders": 2146970,
+          "accepted": 2146427,
+          "shortfall": 12168871.499999547,
+          "candidate_count": 2146427,
+          "candidate_shortfall": 12168871.499999547,
+          "latency_us": 180.0,
+          "mean_shortfall_per_order": 5.669361920996869,
+          "mean_shortfall_per_unit": 5.6693619209968694e-05,
+          "p95_shortfall_per_unit": 7.0000000000064e-05,
+          "candidate_mean_shortfall_per_order": 5.669361920996869,
+          "candidate_mean_shortfall_per_unit": 5.6693619209968694e-05
+        }
+      }
+    },
+    {
+      "pair": "USDJPY",
+      "ticks": 3758424,
+      "quantity": 100000,
+      "elapsed_seconds": 13.581459956942126,
+      "ticks_per_second": 276731.95753000706,
+      "mean_processing_us": 3.6136050527939707,
+      "routed_orders": {
+        "BROKER_A": 0,
+        "BROKER_B": 0,
+        "BROKER_C": 3757473
+      },
+      "brokers": {
+        "BROKER_A": {
+          "orders": 3758424,
+          "accepted": 0,
+          "shortfall": 0.0,
+          "candidate_count": 3755779,
+          "candidate_shortfall": 1299392168.5000231,
+          "latency_us": 55.0,
+          "mean_shortfall_per_order": null,
+          "mean_shortfall_per_unit": null,
+          "p95_shortfall_per_unit": null,
+          "candidate_mean_shortfall_per_order": 345.9714132540874,
+          "candidate_mean_shortfall_per_unit": 0.003459714132540874
+        },
+        "BROKER_B": {
+          "orders": 3758424,
+          "accepted": 0,
+          "shortfall": 0.0,
+          "candidate_count": 3755035,
+          "candidate_shortfall": 1298004942.0886064,
+          "latency_us": 95.0,
+          "mean_shortfall_per_order": null,
+          "mean_shortfall_per_unit": null,
+          "p95_shortfall_per_unit": null,
+          "candidate_mean_shortfall_per_order": 345.6705309241076,
+          "candidate_mean_shortfall_per_unit": 0.003456705309241076
+        },
+        "BROKER_C": {
+          "orders": 3758424,
+          "accepted": 3757473,
+          "shortfall": 1298112972.9998937,
+          "candidate_count": 3757473,
+          "candidate_shortfall": 1298112972.9998937,
+          "latency_us": 180.0,
+          "mean_shortfall_per_order": 345.4749968928303,
+          "mean_shortfall_per_unit": 0.003454749968928303,
+          "p95_shortfall_per_unit": 0.005009999999985353,
+          "candidate_mean_shortfall_per_order": 345.4749968928303,
+          "candidate_mean_shortfall_per_unit": 0.003454749968928303
+        }
+      }
+    }
+  ]
+}

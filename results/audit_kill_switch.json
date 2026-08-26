@@ -1,0 +1,40 @@
+{
+  "completed_at_utc": "2026-08-26T08:16:40Z",
+  "hardware_interrupt_executed": false,
+  "privileged_trip_executed": false,
+  "result": "PASS",
+  "tests": {
+    "audit_recovery": {
+      "appended_events": 3,
+      "chain_length": 64,
+      "chain_verified": true,
+      "recovered_count": 3,
+      "tamper_detected": true
+    },
+    "kill_switch_runtime": {
+      "clear_allows_trade": true,
+      "clear_status": {
+        "enabled": false,
+        "reason": "benchmark-clear",
+        "updated_ns": 1787732200499161034
+      },
+      "invalid_signature_blocks": true,
+      "invalid_status": {
+        "enabled": true,
+        "reason": "invalid-kill-switch-signature"
+      },
+      "missing_fail_closed": true,
+      "stale_state_blocks": true,
+      "stale_status": {
+        "enabled": true,
+        "reason": "stale-kill-switch"
+      },
+      "trip_blocks_trade": true,
+      "trip_status": {
+        "enabled": true,
+        "reason": "benchmark-trip",
+        "updated_ns": 1787732200499374520
+      }
+    }
+  }
+}

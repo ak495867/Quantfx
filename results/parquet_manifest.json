@@ -1,0 +1,33 @@
+{
+  "timezone": "EST_fixed_minus_5",
+  "sources": [
+    {
+      "pair": "AUDUSD",
+      "source": "HISTDATA_COM_ASCII_AUDUSD_T_202401.zip",
+      "output": "HISTDATA_COM_ASCII_AUDUSD_T_202401.parquet",
+      "records": 1477644,
+      "sha256": "ca6aefdea014475db9407fe88d8421e0c91d5500685d71b96973aef86ccd0812"
+    },
+    {
+      "pair": "EURUSD",
+      "source": "HISTDATA_COM_ASCII_EURUSD_T_202401.zip",
+      "output": "HISTDATA_COM_ASCII_EURUSD_T_202401.parquet",
+      "records": 2176113,
+      "sha256": "9a4ae15d87abff93311cc60adf7fe83de9078664c6baaf2984fcc70f160b3da9"
+    },
+    {
+      "pair": "GBPUSD",
+      "source": "HISTDATA_COM_ASCII_GBPUSD_T_202401.zip",
+      "output": "HISTDATA_COM_ASCII_GBPUSD_T_202401.parquet",
+      "records": 2146970,
+      "sha256": "9d6ad5449985d0bcc7e21b1a1c1ed136208b91329d6cf5b975f3ec87bace566d"
+    },
+    {
+      "pair": "USDJPY",
+      "source": "HISTDATA_COM_ASCII_USDJPY_T_202401.zip",
+      "output": "HISTDATA_COM_ASCII_USDJPY_T_202401.parquet",
+      "records": 3758424,
+      "sha256": "2266c00451e5c8089dfa46bb35b31bea98578ebfca9697bae4817bcc8219b3ef"
+    }
+  ]
+}

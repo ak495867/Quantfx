@@ -1,0 +1,48 @@
+name: qfx-ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  target-validation:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: Linux
+          - runner: macos-13
+            target: macOS
+          - runner: macos-14
+            target: macOS
+          - runner: windows-latest
+            target: Windows
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - if: matrix.target == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y nasm qemu-system-x86
+      - if: matrix.target == 'macOS'
+        run: brew install nasm
+      - if: matrix.target == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msys2: true
+          update: true
+          install: >-
+            make
+            nasm
+            mingw-w64-x86_64-binutils
+      - if: matrix.target == 'Windows'
+        shell: msys2 {0}
+        run: ./ci/validate_targets.sh
+      - if: matrix.target != 'Windows'
+        run: chmod +x ci/*.sh tests/*.sh && ./ci/validate_targets.sh
+
+  firmware-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y nasm qemu-system-x86
+      - run: chmod +x ci/*.sh && QFX_REQUIRE_QEMU=1 ./ci/qemu_firmware.sh bios
