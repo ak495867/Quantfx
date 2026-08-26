@@ -27,6 +27,8 @@
   "validation": {
     "python_syntax": "PASS",
     "make_check": "PASS",
+    "target_validation": "PASS",
+    "broker_simulator_permission": "PASS",
     "platform_checks": "PASS",
     "runtime_checks": "PASS",
     "kill_switch_static_and_simulation": "PASS",
@@ -36,6 +38,9 @@
   },
   "artifact_sha256": {
     "BENCHMARK_REPORT.md": "8cec75d53cde2c2afce75bfb77d5bc03066212ca7946839413dfd757e9937268",
+    ".github/workflows/ci.yml": "30962cfbeb7c95311707e08ddd44238bd6ba69a815d37fcc46557df1d37783ef",
+    "adapters/broker_simulator.sh": "51fa051fd29c721c7290904fff79fbdfb3311232dddbc9d5d9c2f90719cd95be",
+    "tests/run_tests.sh": "c5632e3260835fc0c83e90513bddda4410d84ab077f0663c650f2f757bd6eed8",
     "docs/usage.md": "1447b2d9e292ffe2478051911e056cf14a5ca7237a48a20eee8ac53e42c5e86d",
     "Makefile": "16f468dbac401f21e908875cc89573d791024cc1128bbd3df7caf4f51d9cb3a2",
     "benchmark_sources.md": "1c49be6deff29b4c0ce7e417e330b208c4d44bfe0c700a376911a955bbd3cf7b",

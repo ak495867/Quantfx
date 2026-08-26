@@ -1,6 +1,8 @@
 # QuantFX Real-Data Benchmark Report
 
-
+**Run date:** 26 August 2026  
+**Repository:** QuantFX  
+**License:** MIT  
 **Benchmark scope:** real historical FX ticks, deterministic modeled multi-venue execution cost, encrypted audit recovery, safe kill-switch verification, and purged walk-forward optimization.
 
 ## Executive summary

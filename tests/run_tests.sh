@@ -37,7 +37,7 @@ grep -q 'SELL,5,1000,107970,1000005000,6' /tmp/qfx_orders.out
 grep -q 'adapters opened' /tmp/qfx_live.out
 test "$(stat -c '%s' data/live.journal)" -eq 480
 test "$(stat -c '%s' data/live.checkpoint)" -eq 48
-adapters/broker_simulator.sh </tmp/qfx_orders.out >/tmp/qfx_broker_events.out
+bash adapters/broker_simulator.sh </tmp/qfx_orders.out >/tmp/qfx_broker_events.out
 test "$(grep -c '^ACK,' /tmp/qfx_broker_events.out)" -eq 6
 test "$(grep -c '^FILL,' /tmp/qfx_broker_events.out)" -eq 6
 rm -f data/live.journal data/live.checkpoint
