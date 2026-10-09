@@ -14,7 +14,12 @@ class KillSwitchError(RuntimeError):
 
 
 class KillSwitch:
-    def __init__(self, path: str | os.PathLike[str], key: bytes, max_age_ns: int = 86_400_000_000_000):
+    def __init__(
+        self,
+        path: str | os.PathLike[str],
+        key: bytes,
+        max_age_ns: int = 86_400_000_000_000,
+    ):
         if len(key) < 32:
             raise ValueError("kill-switch key must be at least 32 bytes")
         self.path = Path(path)

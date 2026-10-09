@@ -34,13 +34,22 @@ def load_events(path: str) -> list[Event]:
     events: list[Event] = []
     with Path(path).open(newline="") as stream:
         for row in csv.DictReader(stream):
-            events.append(Event(int(row["timestamp_ns"]), int(row["bid"]), int(row["ask"]), int(row["last"])))
+            events.append(
+                Event(
+                    int(row["timestamp_ns"]),
+                    int(row["bid"]),
+                    int(row["ask"]),
+                    int(row["last"]),
+                )
+            )
     events.sort(key=lambda event: event.timestamp_ns)
     return events
 
 
 def returns(events: list[Event]) -> list[int]:
-    return [events[index + 1].last - events[index].last for index in range(len(events) - 1)]
+    return [
+        events[index + 1].last - events[index].last for index in range(len(events) - 1)
+    ]
 
 
 def evaluate(events: list[Event], threshold: float) -> int:
@@ -54,7 +63,14 @@ def evaluate(events: list[Event], threshold: float) -> int:
     return pnl
 
 
-def walk_forward(events: list[Event], train_size: int, test_size: int, purge: int, embargo: int, folds: int) -> list[Fold]:
+def walk_forward(
+    events: list[Event],
+    train_size: int,
+    test_size: int,
+    purge: int,
+    embargo: int,
+    folds: int,
+) -> list[Fold]:
     if train_size <= 1 or test_size <= 0 or purge < 0 or embargo < 0 or folds <= 0:
         raise ValueError("invalid walk-forward parameters")
     output: list[Fold] = []
@@ -68,10 +84,26 @@ def walk_forward(events: list[Event], train_size: int, test_size: int, purge: in
         if test_end > len(events):
             break
         train_returns = returns(events[train_start:train_end])
-        threshold = abs(sum(train_returns) / len(train_returns)) if train_returns else 0.0
+        threshold = (
+            abs(sum(train_returns) / len(train_returns)) if train_returns else 0.0
+        )
         train_pnl = evaluate(events[train_start:train_end], threshold)
         test_pnl = evaluate(events[test_start:test_end], threshold)
-        output.append(Fold(fold, train_start, train_end, purge_start, purge_end, test_start, test_end, test_end + embargo, threshold, train_pnl, test_pnl))
+        output.append(
+            Fold(
+                fold,
+                train_start,
+                train_end,
+                purge_start,
+                purge_end,
+                test_start,
+                test_end,
+                test_end + embargo,
+                threshold,
+                train_pnl,
+                test_pnl,
+            )
+        )
         train_start = test_end + embargo
         test_start = train_start + train_size + purge
     return output
@@ -87,8 +119,15 @@ def main() -> int:
     parser.add_argument("--folds", type=int, default=5)
     args = parser.parse_args()
     events = load_events(args.input)
-    folds = walk_forward(events, args.train_size, args.test_size, args.purge, args.embargo, args.folds)
-    print(json.dumps({"events": len(events), "folds": [asdict(fold) for fold in folds]}, sort_keys=True))
+    folds = walk_forward(
+        events, args.train_size, args.test_size, args.purge, args.embargo, args.folds
+    )
+    print(
+        json.dumps(
+            {"events": len(events), "folds": [asdict(fold) for fold in folds]},
+            sort_keys=True,
+        )
+    )
     return 0
 
 

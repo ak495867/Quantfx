@@ -34,7 +34,11 @@ class EncryptedAuditJournal:
                 record = json.loads(raw)
                 nonce = base64.b64decode(record["nonce"])
                 ciphertext = base64.b64decode(record["ciphertext"])
-                expected_chain = hashlib.sha256((self.chain + base64.b64encode(nonce + ciphertext).decode()).encode()).hexdigest()
+                expected_chain = hashlib.sha256(
+                    (
+                        self.chain + base64.b64encode(nonce + ciphertext).decode()
+                    ).encode()
+                ).hexdigest()
                 if record["chain"] != expected_chain:
                     raise AuditIntegrityError("audit chain verification failed")
                 AESGCM(self.key).decrypt(nonce, ciphertext, self.chain.encode())
@@ -54,7 +58,11 @@ class EncryptedAuditJournal:
         }
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("ab") as stream:
-            stream.write((json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n").encode())
+            stream.write(
+                (
+                    json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n"
+                ).encode()
+            )
             stream.flush()
             os.fsync(stream.fileno())
         self.chain = chain

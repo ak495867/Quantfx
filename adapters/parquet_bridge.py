@@ -33,19 +33,46 @@ def main():
     required = [timestamp, bid, ask, last]
     if any(item is None for item in required):
         raise SystemExit("missing required parquet columns")
-    arrays = {name: table[name].to_pylist() if name else None for name in [timestamp, bid, ask, last, volume, bid_size, ask_size, sequence, flags]}
+    arrays = {
+        name: table[name].to_pylist() if name else None
+        for name in [
+            timestamp,
+            bid,
+            ask,
+            last,
+            volume,
+            bid_size,
+            ask_size,
+            sequence,
+            flags,
+        ]
+    }
     size = len(arrays[timestamp])
     for index in range(size):
         ts = int(arrays[timestamp][index])
-        b = scale(arrays[bid][index], 100000) if isinstance(arrays[bid][index], float) else int(arrays[bid][index])
-        a = scale(arrays[ask][index], 100000) if isinstance(arrays[ask][index], float) else int(arrays[ask][index])
-        l = scale(arrays[last][index], 100000) if isinstance(arrays[last][index], float) else int(arrays[last][index])
+        b = (
+            scale(arrays[bid][index], 100000)
+            if isinstance(arrays[bid][index], float)
+            else int(arrays[bid][index])
+        )
+        a = (
+            scale(arrays[ask][index], 100000)
+            if isinstance(arrays[ask][index], float)
+            else int(arrays[ask][index])
+        )
+        l = (
+            scale(arrays[last][index], 100000)
+            if isinstance(arrays[last][index], float)
+            else int(arrays[last][index])
+        )
         v = int(arrays[volume][index]) if volume else 0
         bs = int(arrays[bid_size][index]) if bid_size else 0
         asks = int(arrays[ask_size][index]) if ask_size else 0
         seq = int(arrays[sequence][index]) if sequence else index
         flg = int(arrays[flags][index]) if flags else 0
-        sys.stdout.write(f"{ts},{args.symbol},{b},{a},{l},{v},{bs},{asks},{seq},{flg}\n")
+        sys.stdout.write(
+            f"{ts},{args.symbol},{b},{a},{l},{v},{bs},{asks},{seq},{flg}\n"
+        )
 
 
 if __name__ == "__main__":

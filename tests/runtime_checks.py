@@ -53,11 +53,23 @@ def main() -> int:
         assert switch.can_trade()
         switch.trip("test")
         assert not switch.can_trade()
-    events = [Event(index, 100000 + index, 100010 + index, 100005 + index) for index in range(40)]
+    events = [
+        Event(index, 100000 + index, 100010 + index, 100005 + index)
+        for index in range(40)
+    ]
     folds = walk_forward(events, 10, 5, 2, 2, 2)
     assert folds[0].purge_end - folds[0].purge_start == 2
     assert folds[0].test_start - folds[0].train_end == 2
-    result = model(100.0, 1, 100, [{"quantity": 60, "price": 100.2, "fee": 0.5}, {"quantity": 40, "price": 100.3, "fee": 0.5}], 100.4)
+    result = model(
+        100.0,
+        1,
+        100,
+        [
+            {"quantity": 60, "price": 100.2, "fee": 0.5},
+            {"quantity": 40, "price": 100.3, "fee": 0.5},
+        ],
+        100.4,
+    )
     assert result.filled_quantity == 100
     assert result.total_cost > 0
     print("RUNTIME_PASS")

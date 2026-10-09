@@ -11,24 +11,27 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-
 UTC_OFFSET = timezone(timedelta(hours=-5))
-SCHEMA = pa.schema([
-    ("timestamp_ns", pa.int64()),
-    ("symbol", pa.string()),
-    ("bid", pa.float64()),
-    ("ask", pa.float64()),
-    ("mid", pa.float64()),
-    ("spread", pa.float64()),
-    ("volume", pa.float64()),
-    ("sequence", pa.int64()),
-    ("flags", pa.int32()),
-])
+SCHEMA = pa.schema(
+    [
+        ("timestamp_ns", pa.int64()),
+        ("symbol", pa.string()),
+        ("bid", pa.float64()),
+        ("ask", pa.float64()),
+        ("mid", pa.float64()),
+        ("spread", pa.float64()),
+        ("volume", pa.float64()),
+        ("sequence", pa.int64()),
+        ("flags", pa.int32()),
+    ]
+)
 
 
 def parse_timestamp(value: str) -> int:
     date_part, time_part = value.split()
-    base = datetime.strptime(date_part + time_part[:6], "%Y%m%d%H%M%S").replace(tzinfo=UTC_OFFSET)
+    base = datetime.strptime(date_part + time_part[:6], "%Y%m%d%H%M%S").replace(
+        tzinfo=UTC_OFFSET
+    )
     return int(base.timestamp() * 1_000_000_000) + int(time_part[6:]) * 1_000_000
 
 
@@ -38,7 +41,9 @@ def convert_archive(archive: Path, output: Path, batch_size: int) -> dict:
     count = 0
     writer = None
     with zipfile.ZipFile(archive) as bundle:
-        csv_name = next(name for name in bundle.namelist() if name.lower().endswith(".csv"))
+        csv_name = next(
+            name for name in bundle.namelist() if name.lower().endswith(".csv")
+        )
         with bundle.open(csv_name) as raw:
             stream = (line.decode("ascii", "replace") for line in raw)
             reader = csv.reader(stream, delimiter=",")
@@ -77,7 +82,13 @@ def convert_archive(archive: Path, output: Path, batch_size: int) -> dict:
         writer.write_table(table)
     if writer is not None:
         writer.close()
-    return {"pair": pair, "source": str(archive), "output": str(output), "records": count, "sha256": hashlib.sha256(archive.read_bytes()).hexdigest()}
+    return {
+        "pair": pair,
+        "source": str(archive),
+        "output": str(output),
+        "records": count,
+        "sha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
+    }
 
 
 def main() -> int:
@@ -86,9 +97,19 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=Path("data/real/parquet"))
     parser.add_argument("--batch-size", type=int, default=100_000)
     args = parser.parse_args()
-    manifest = [convert_archive(path, args.output / f"{path.name.rsplit('.', 1)[0]}.parquet", args.batch_size) for path in args.input]
+    manifest = [
+        convert_archive(
+            path,
+            args.output / f"{path.name.rsplit('.', 1)[0]}.parquet",
+            args.batch_size,
+        )
+        for path in args.input
+    ]
     args.output.mkdir(parents=True, exist_ok=True)
-    (args.output / "manifest.json").write_text(json.dumps({"timezone": "EST_fixed_minus_5", "sources": manifest}, indent=2) + "\n")
+    (args.output / "manifest.json").write_text(
+        json.dumps({"timezone": "EST_fixed_minus_5", "sources": manifest}, indent=2)
+        + "\n"
+    )
     print(json.dumps(manifest, sort_keys=True))
     return 0
 
