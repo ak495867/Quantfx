@@ -4,4 +4,8 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 cd "$root"
 ./build/qfx_hybrid ring-benchmark 1000000 | grep -q 'ring_iterations=1000000'
 ./build/qfx_hybrid alpha-backtest fixtures/eurusd_sample.csv | grep -q 'events=7'
+./build/qfx_hybrid l2-sweep 1 1000000 | grep -q 'target_qty=1000000'
+./build/qfx_hybrid tsc-benchmark 100000 | grep -q 'tsc_iterations=100000'
+./build/qfx_hybrid sbe-demo | grep -q 'sbe_verify=PASS'
+python3 tests/test_native.py | grep -q 'PYTHON_NATIVE_PASS'
 echo HYBRID_PASS

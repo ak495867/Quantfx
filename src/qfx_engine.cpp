@@ -1,5 +1,9 @@
 #include "qfx.hpp"
 #include "qfx_ring.hpp"
+#include "qfx_l2.hpp"
+#include "qfx_tsc.hpp"
+#include "qfx_tuning.hpp"
+#include "qfx_sbe.hpp"
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -15,6 +19,9 @@
 #include <unistd.h>
 
 namespace qfx {
+
+static TscClock global_tsc;
+static L2OrderBook<10> global_l2_book;
 
 class MicrostructureAlpha {
 public:
@@ -167,9 +174,11 @@ static int run_alpha_backtest(const char* path) {
 static int run_ring_benchmark(size_t iterations) {
     SpscRingBuffer<65536> ring;
     ring.storage = new SpscRingBuffer<65536>::Storage();
+    enable_hugepages(ring.storage, sizeof(SpscRingBuffer<65536>::Storage));
     std::atomic<bool> start_signal{false};
 
     auto producer = [&]() {
+        set_cpu_affinity(0);
         while (!start_signal.load(std::memory_order_acquire)) {}
         Event ev{};
         for (size_t i = 0; i < iterations; ++i) {
@@ -182,6 +191,7 @@ static int run_ring_benchmark(size_t iterations) {
     };
 
     auto consumer = [&]() {
+        set_cpu_affinity(1);
         while (!start_signal.load(std::memory_order_acquire)) {}
         Event ev{};
         for (size_t i = 0; i < iterations; ++i) {
@@ -210,6 +220,108 @@ static int run_ring_benchmark(size_t iterations) {
     return 0;
 }
 
+static int run_l2_demo(int64_t side, uint64_t qty) {
+    L2OrderBook<10> book;
+    book.update_ask(0, 108010, 500000);
+    book.update_ask(1, 108015, 1000000);
+    book.update_ask(2, 108020, 2000000);
+    book.update_bid(0, 108000, 500000);
+    book.update_bid(1, 107995, 1000000);
+    book.update_bid(2, 107990, 2000000);
+
+    auto res = book.sweep(side, qty);
+    std::cout << "target_qty=" << qty << "\n"
+              << "filled_qty=" << res.filled_quantity << "\n"
+              << "vwap=" << res.vwap << "\n"
+              << "slippage=" << res.slippage << "\n";
+    return 0;
+}
+
+static int run_tsc_demo(size_t iterations) {
+    global_tsc.calibrate(10);
+    uint64_t start = global_tsc.now_ns();
+    for (size_t i = 0; i < iterations; ++i) {
+        volatile uint64_t ts = global_tsc.now_ns();
+        (void)ts;
+    }
+    uint64_t end = global_tsc.now_ns();
+    double ns_per_call = static_cast<double>(end - start) / static_cast<double>(iterations);
+    std::cout << "tsc_iterations=" << iterations << "\n"
+              << "ns_per_call=" << ns_per_call << "\n";
+    return 0;
+}
+
+static int run_sbe_demo() {
+    uint8_t buffer[128];
+    Order ord{};
+    ord.client_order_id = 999;
+    ord.symbol = 1;
+    ord.price = 108025;
+    ord.quantity = 500000;
+    ord.side = 1;
+
+    size_t encoded_bytes = encode_sbe_order(buffer, sizeof(buffer), ord, 123456789);
+    Order decoded{};
+    uint64_t decoded_ts = 0;
+    bool ok = decode_sbe_order(buffer, encoded_bytes, decoded, decoded_ts);
+
+    if (ok && decoded.client_order_id == ord.client_order_id && decoded.price == ord.price) {
+        std::cout << "sbe_encoded_bytes=" << encoded_bytes << "\n"
+                  << "sbe_verify=PASS\n";
+        return 0;
+    }
+    return 1;
+}
+
+}
+
+extern "C" {
+
+int qfx_c_init() {
+    qfx::global_tsc.calibrate(10);
+    qfx::global_l2_book.update_ask(0, 108010, 1000000);
+    qfx::global_l2_book.update_ask(1, 108015, 2000000);
+    qfx::global_l2_book.update_bid(0, 108000, 1000000);
+    qfx::global_l2_book.update_bid(1, 107995, 2000000);
+    return 0;
+}
+
+uint64_t qfx_c_tsc_now_ns() {
+    return qfx::global_tsc.now_ns();
+}
+
+int qfx_c_pin_thread(int cpu_id) {
+    return qfx::set_cpu_affinity(cpu_id) ? 0 : -1;
+}
+
+int qfx_c_l2_sweep(int64_t side, uint64_t quantity, int64_t* out_vwap, uint64_t* out_filled) {
+    if (!out_vwap || !out_filled) return -1;
+    auto res = qfx::global_l2_book.sweep(side, quantity);
+    *out_vwap = res.vwap;
+    *out_filled = res.filled_quantity;
+    return 0;
+}
+
+int qfx_c_process_buffer(const qfx::Event* events, size_t count, qfx::ExecutionReport* out_report) {
+    if (!events || !out_report) return -1;
+    qfx::MicrostructureAlpha engine;
+    for (size_t i = 0; i < count; ++i) {
+        engine.process_tick(events[i]);
+    }
+    *out_report = engine.report;
+    return 0;
+}
+
+int qfx_c_sbe_encode_order(const qfx::Order* order, uint64_t ts_ns, uint8_t* out_buf, size_t buf_len) {
+    if (!order || !out_buf) return -1;
+    return static_cast<int>(qfx::encode_sbe_order(out_buf, buf_len, *order, ts_ns));
+}
+
+int qfx_c_sbe_decode_order(const uint8_t* in_buf, size_t buf_len, qfx::Order* order, uint64_t* ts_ns) {
+    if (!in_buf || !order || !ts_ns) return -1;
+    return qfx::decode_sbe_order(in_buf, buf_len, *order, *ts_ns) ? 0 : -1;
+}
+
 }
 
 int main(int argc, char* argv[]) {
@@ -224,6 +336,18 @@ int main(int argc, char* argv[]) {
     if (cmd == "ring-benchmark") {
         size_t iters = (argc >= 3) ? std::stoull(argv[2]) : 5000000;
         return qfx::run_ring_benchmark(iters);
+    }
+    if (cmd == "l2-sweep" && argc >= 4) {
+        int64_t side = std::stoll(argv[2]);
+        uint64_t qty = std::stoull(argv[3]);
+        return qfx::run_l2_demo(side, qty);
+    }
+    if (cmd == "tsc-benchmark") {
+        size_t iters = (argc >= 3) ? std::stoull(argv[2]) : 1000000;
+        return qfx::run_tsc_demo(iters);
+    }
+    if (cmd == "sbe-demo") {
+        return qfx::run_sbe_demo();
     }
     std::cerr << "unknown hybrid command\n";
     return 1;

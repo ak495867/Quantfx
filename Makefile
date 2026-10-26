@@ -5,10 +5,10 @@ LD=ld
 CXX=g++
 ASFLAGS=-f elf64 -Iinclude/
 LDFLAGS=-dynamic-linker /lib64/ld-linux-x86-64.so.2
-CXXFLAGS=-O3 -std=c++20 -Wall -Wextra -pthread -Iinclude/
+CXXFLAGS=-O3 -std=c++20 -Wall -Wextra -pthread -fPIC -Iinclude/
 LDFLAGS_CPP=-pthread -lrt
 
-all: $(BUILD)/$(PROJECT) $(BUILD)/qfx_hybrid
+all: $(BUILD)/$(PROJECT) $(BUILD)/qfx_hybrid $(BUILD)/libqfx.so
 
 platform: windows-pe uefi bios darwin-object darwin-arm64-source nt-syscalls-object timer-object kill-switch-object
 
@@ -68,6 +68,9 @@ $(BUILD)/qfx_engine.o: src/qfx_engine.cpp include/qfx.hpp include/qfx_ring.hpp |
 
 $(BUILD)/qfx_hybrid: $(BUILD)/qfx_engine.o $(BUILD)/qfx_asm_core.o
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS_CPP)
+
+$(BUILD)/libqfx.so: $(BUILD)/qfx_engine.o $(BUILD)/qfx_asm_core.o
+	$(CXX) -shared $(CXXFLAGS) $^ -o $@ $(LDFLAGS_CPP)
 
 $(BUILD)/$(PROJECT): $(BUILD)/qfx.o
 	$(LD) $(LDFLAGS) $< -o $@
