@@ -68,7 +68,10 @@ class KillSwitch:
             and mtime == self._cached_mtime
             and self._cached_payload is not None
         ):
-            if time.time_ns() - int(self._cached_payload["updated_ns"]) > self.max_age_ns:
+            if (
+                time.time_ns() - int(self._cached_payload["updated_ns"])
+                > self.max_age_ns
+            ):
                 return {"enabled": True, "reason": "stale-kill-switch"}
             return self._cached_payload
 

@@ -27,7 +27,11 @@ def get_resilient_session() -> requests.Session:
 
 
 def fetch_pair(
-    pair: str, year: int, month: int, output: Path, session: requests.Session | None = None
+    pair: str,
+    year: int,
+    month: int,
+    output: Path,
+    session: requests.Session | None = None,
 ) -> dict:
     referer = f"https://www.histdata.com/download-free-forex-historical-data/?/ascii/tick-data-quotes/{pair.lower()}/{year}/{month}"
     sess = session or get_resilient_session()
@@ -37,9 +41,7 @@ def fetch_pair(
         "Content-Type": "application/x-www-form-urlencoded",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     }
-    page = sess.get(
-        referer, headers={"User-Agent": headers["User-Agent"]}, timeout=60
-    )
+    page = sess.get(referer, headers={"User-Agent": headers["User-Agent"]}, timeout=60)
     page.raise_for_status()
     fields = dict(
         re.findall(

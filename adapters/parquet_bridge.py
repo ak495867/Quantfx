@@ -38,7 +38,9 @@ def main() -> None:
         description="Stream and normalize Parquet market data to canonical QuantFX CSV format."
     )
     parser.add_argument("path", help="Path to Parquet input file")
-    parser.add_argument("--symbol", default="UNKNOWN", help="Symbol name (e.g., EURUSD)")
+    parser.add_argument(
+        "--symbol", default="UNKNOWN", help="Symbol name (e.g., EURUSD)"
+    )
     parser.add_argument(
         "--batch-size", type=int, default=65536, help="Batch streaming buffer size"
     )

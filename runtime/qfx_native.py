@@ -233,7 +233,9 @@ class QfxNative:
             raise RuntimeError("process buffer failed")
         return report
 
-    def sbe_roundtrip(self, order: NativeOrder, ts: int) -> tuple[bytes, NativeOrder, int]:
+    def sbe_roundtrip(
+        self, order: NativeOrder, ts: int
+    ) -> tuple[bytes, NativeOrder, int]:
         buf = (ctypes.c_uint8 * 128)()
         encoded_len = self.lib.qfx_c_sbe_encode_order(
             ctypes.byref(order), ts, buf, len(buf)
@@ -252,7 +254,9 @@ class QfxNative:
     def eval_risk(self, order: NativeOrder, mid: int, pos: int, now_ns: int) -> int:
         return int(self.lib.qfx_c_risk_eval(ctypes.byref(order), mid, pos, now_ns))
 
-    def split_venues(self, side: int, qty: int, quotes: list[NativeVenueQuote]) -> list[NativeVenueSplit]:
+    def split_venues(
+        self, side: int, qty: int, quotes: list[NativeVenueQuote]
+    ) -> list[NativeVenueSplit]:
         in_arr = (NativeVenueQuote * len(quotes))(*quotes)
         out_arr = (NativeVenueSplit * 16)()
         n = self.lib.qfx_c_sor_split(side, qty, in_arr, len(quotes), out_arr, 16)
@@ -260,7 +264,14 @@ class QfxNative:
             raise RuntimeError("sor split failed")
         return [out_arr[i] for i in range(n)]
 
-    def score_simd4(self, asks: list[int], bids: list[int], lats: list[int], slips: list[int], fees: list[int]) -> list[int]:
+    def score_simd4(
+        self,
+        asks: list[int],
+        bids: list[int],
+        lats: list[int],
+        slips: list[int],
+        fees: list[int],
+    ) -> list[int]:
         c_asks = (ctypes.c_int64 * 4)(*asks)
         c_bids = (ctypes.c_int64 * 4)(*bids)
         c_lats = (ctypes.c_int64 * 4)(*lats)
@@ -274,14 +285,20 @@ class QfxNative:
         c_ret = (ctypes.c_int64 * len(returns))(*returns)
         out_var = ctypes.c_int64(0)
         out_cvar = ctypes.c_int64(0)
-        rc = self.lib.qfx_c_var_compute(c_ret, len(returns), ctypes.byref(out_var), ctypes.byref(out_cvar))
+        rc = self.lib.qfx_c_var_compute(
+            c_ret, len(returns), ctypes.byref(out_var), ctypes.byref(out_cvar)
+        )
         if rc != 0:
             raise RuntimeError("var compute failed")
         return out_var.value, out_cvar.value
 
-    def venue_match(self, order: NativeSbeOrderMessage, now_ns: int) -> NativeSbeExecutionReport:
+    def venue_match(
+        self, order: NativeSbeOrderMessage, now_ns: int
+    ) -> NativeSbeExecutionReport:
         report = NativeSbeExecutionReport()
-        rc = self.lib.qfx_c_venue_match(ctypes.byref(order), now_ns, ctypes.byref(report))
+        rc = self.lib.qfx_c_venue_match(
+            ctypes.byref(order), now_ns, ctypes.byref(report)
+        )
         if rc != 0:
             raise RuntimeError("venue match failed")
         return report
@@ -310,4 +327,3 @@ class QfxNative:
         if rc != 0:
             raise RuntimeError("quant stats failed")
         return out_sharpe.value, out_sortino.value
-
