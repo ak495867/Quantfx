@@ -112,6 +112,25 @@ def main() -> int:
     assert sharpe > 0.0
     assert sortino > 0.0
 
+    native.update_ofi([108000, 107995], [500000, 1000000], [108010, 108015], [500000, 1000000])
+    l1_ofi, multi_ofi = native.update_ofi(
+        [108000, 107995], [900000, 1000000], [108010, 108015], [200000, 1000000]
+    )
+    assert l1_ofi == 700000
+    assert multi_ofi == 700000
+
+    slot = native.venue_place_passive(555, 1, 107995, 100000)
+    assert slot >= 0
+    t1 = native.venue_trade(-1, 107995, 2500000, 5000)
+    assert t1.exec_type in (1, 2)
+    m_pnl = native.venue_markout(slot, 107980)
+    assert m_pnl == -15
+
+    act1, nxt1 = native.feed_arbitrate(0, 10)
+    assert act1 in (0, 2)
+    act2, nxt2 = native.feed_arbitrate(1, 10)
+    assert act2 == 1
+
     print("PYTHON_NATIVE_ALL_PASS")
     return 0
 

@@ -211,6 +211,48 @@ class QfxNative:
         ]
         self.lib.qfx_c_quant_stats.restype = ctypes.c_int
 
+        self.lib.qfx_c_ofi_update.argtypes = [
+            ctypes.POINTER(ctypes.c_int64),
+            ctypes.POINTER(ctypes.c_uint64),
+            ctypes.POINTER(ctypes.c_int64),
+            ctypes.POINTER(ctypes.c_uint64),
+            ctypes.c_size_t,
+            ctypes.POINTER(ctypes.c_int64),
+            ctypes.POINTER(ctypes.c_int64),
+        ]
+        self.lib.qfx_c_ofi_update.restype = ctypes.c_int
+
+        self.lib.qfx_c_venue_place_passive.argtypes = [
+            ctypes.c_uint64,
+            ctypes.c_int8,
+            ctypes.c_int64,
+            ctypes.c_uint64,
+        ]
+        self.lib.qfx_c_venue_place_passive.restype = ctypes.c_int
+
+        self.lib.qfx_c_venue_trade.argtypes = [
+            ctypes.c_int8,
+            ctypes.c_int64,
+            ctypes.c_uint64,
+            ctypes.c_uint64,
+            ctypes.POINTER(NativeSbeExecutionReport),
+        ]
+        self.lib.qfx_c_venue_trade.restype = ctypes.c_int
+
+        self.lib.qfx_c_venue_markout.argtypes = [
+            ctypes.c_size_t,
+            ctypes.c_int64,
+        ]
+        self.lib.qfx_c_venue_markout.restype = ctypes.c_int64
+
+        self.lib.qfx_c_feed_arbitrate.argtypes = [
+            ctypes.c_uint8,
+            ctypes.c_uint64,
+            ctypes.POINTER(ctypes.c_uint8),
+            ctypes.POINTER(ctypes.c_uint64),
+        ]
+        self.lib.qfx_c_feed_arbitrate.restype = ctypes.c_int
+
     def now_ns(self) -> int:
         return int(self.lib.qfx_c_tsc_now_ns())
 
@@ -327,3 +369,54 @@ class QfxNative:
         if rc != 0:
             raise RuntimeError("quant stats failed")
         return out_sharpe.value, out_sortino.value
+
+    def update_ofi(
+        self,
+        bids: list[int],
+        bid_sizes: list[int],
+        asks: list[int],
+        ask_sizes: list[int],
+    ) -> tuple[int, int]:
+        n = min(len(bids), len(bid_sizes), len(asks), len(ask_sizes))
+        c_bids = (ctypes.c_int64 * n)(*bids[:n])
+        c_bsizes = (ctypes.c_uint64 * n)(*bid_sizes[:n])
+        c_asks = (ctypes.c_int64 * n)(*asks[:n])
+        c_asizes = (ctypes.c_uint64 * n)(*ask_sizes[:n])
+        out_l1 = ctypes.c_int64(0)
+        out_multi = ctypes.c_int64(0)
+        rc = self.lib.qfx_c_ofi_update(
+            c_bids, c_bsizes, c_asks, c_asizes, n, ctypes.byref(out_l1), ctypes.byref(out_multi)
+        )
+        if rc != 0:
+            raise RuntimeError("ofi update failed")
+        return out_l1.value, out_multi.value
+
+    def venue_place_passive(self, cl_id: int, side: int, price: int, qty: int) -> int:
+        slot = self.lib.qfx_c_venue_place_passive(cl_id, side, price, qty)
+        if slot < 0:
+            raise RuntimeError("venue place passive failed")
+        return int(slot)
+
+    def venue_trade(
+        self, side: int, price: int, qty: int, now_ns: int
+    ) -> NativeSbeExecutionReport:
+        report = NativeSbeExecutionReport()
+        rc = self.lib.qfx_c_venue_trade(
+            side, price, qty, now_ns, ctypes.byref(report)
+        )
+        if rc != 0:
+            raise RuntimeError("venue trade failed")
+        return report
+
+    def venue_markout(self, slot: int, mid_price: int) -> int:
+        return int(self.lib.qfx_c_venue_markout(slot, mid_price))
+
+    def feed_arbitrate(self, feed_id: int, seq: int) -> tuple[int, int]:
+        out_action = ctypes.c_uint8(0)
+        out_next = ctypes.c_uint64(0)
+        rc = self.lib.qfx_c_feed_arbitrate(
+            feed_id, seq, ctypes.byref(out_action), ctypes.byref(out_next)
+        )
+        if rc != 0:
+            raise RuntimeError("feed arbitrate failed")
+        return out_action.value, out_next.value

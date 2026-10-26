@@ -15,5 +15,8 @@ cd "$root"
 ./build/qfx_hybrid net-demo | grep -q 'net_socket=PASS'
 ./build/qfx_hybrid latency-profile 1000 | grep -q 'profile_verify=PASS'
 ./build/qfx_hybrid venue-sim-demo | grep -q 'venue_sim_verify=PASS'
+./build/qfx_hybrid ofi-demo | grep -q 'ofi_verify=PASS'
+./build/qfx_hybrid adverse-sim-demo | grep -q 'adverse_sim_verify=PASS'
+./build/qfx_hybrid feed-arb-demo | grep -q 'feed_arb_verify=PASS'
 python3 tests/test_native.py | grep -q 'PYTHON_NATIVE_ALL_PASS'
 echo HYBRID_PASS

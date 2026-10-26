@@ -13,6 +13,8 @@
 #include "qfx_hdr_histogram.hpp"
 #include "qfx_quant_metrics.hpp"
 #include "qfx_venue_sim.hpp"
+#include "qfx_ofi.hpp"
+#include "qfx_feed_arbitration.hpp"
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -538,6 +540,87 @@ static int run_venue_sim_demo() {
     return 1;
 }
 
+static int run_ofi_demo() {
+    OrderFlowImbalanceTracker<5> tracker;
+    int64_t bids1[2] = {108000, 107995};
+    uint64_t bsize1[2] = {500000, 1000000};
+    int64_t asks1[2] = {108010, 108015};
+    uint64_t asize1[2] = {500000, 1000000};
+    tracker.update(bids1, bsize1, asks1, asize1, 2);
+
+    int64_t bids2[2] = {108000, 107995};
+    uint64_t bsize2[2] = {900000, 1000000};
+    int64_t asks2[2] = {108010, 108015};
+    uint64_t asize2[2] = {200000, 1000000};
+    auto sig = tracker.update(bids2, bsize2, asks2, asize2, 2);
+
+    if (sig.l1_ofi > 0 && sig.multi_level_ofi > 0) {
+        std::cout << "l1_ofi=" << sig.l1_ofi << "\n"
+                  << "multi_ofi=" << sig.multi_level_ofi << "\n"
+                  << "ofi_verify=PASS\n";
+        return 0;
+    }
+    return 1;
+}
+
+static int run_adverse_sim_demo() {
+    global_venue_sim.seed_default_market(108000);
+    int slot = global_venue_sim.place_passive_order(1001, 1, 107995, 100000);
+    if (slot < 0) return 1;
+
+    auto rep1 = global_venue_sim.on_market_trade(-1, 107995, 300000, 1000);
+    if (rep1.exec_type != 8) return 1;
+
+    auto rep2 = global_venue_sim.on_market_trade(-1, 107995, 250000, 2000);
+    if (rep2.exec_type != 1 || rep2.exec_quantity != 50000) return 1;
+
+    auto rep3 = global_venue_sim.on_market_trade(-1, 107995, 100000, 3000);
+    if (rep3.exec_type != 2 || rep3.exec_quantity != 50000) return 1;
+
+    int64_t markout = global_venue_sim.evaluate_markout(static_cast<size_t>(slot), 107980);
+    if (markout == -15) {
+        std::cout << "passive_slot=" << slot << "\n"
+                  << "total_fill_qty=100000\n"
+                  << "adverse_markout=" << markout << "\n"
+                  << "adverse_sim_verify=PASS\n";
+        return 0;
+    }
+    return 1;
+}
+
+static int run_feed_arb_demo() {
+    FeedArbitrator<256> arb;
+    arb.reset(1);
+
+    auto r1 = arb.process_packet(0, 1);
+    if (r1.action != FeedPacketAction::ACCEPT) return 1;
+
+    auto r2 = arb.process_packet(1, 1);
+    if (r2.action != FeedPacketAction::DUPLICATE_DROP) return 1;
+
+    auto r3 = arb.process_packet(1, 2);
+    if (r3.action != FeedPacketAction::ACCEPT) return 1;
+
+    auto r4 = arb.process_packet(0, 2);
+    if (r4.action != FeedPacketAction::DUPLICATE_DROP) return 1;
+
+    auto r5 = arb.process_packet(0, 4);
+    if (r5.action != FeedPacketAction::GAP_DETECTED) return 1;
+
+    auto r6 = arb.process_packet(1, 3);
+    if (r6.action != FeedPacketAction::ACCEPT) return 1;
+
+    if (arb.accepted_a > 0 && arb.accepted_b > 0 && arb.duplicate_drops == 2 && arb.gap_count == 1) {
+        std::cout << "accepted_a=" << arb.accepted_a << "\n"
+                  << "accepted_b=" << arb.accepted_b << "\n"
+                  << "dup_drops=" << arb.duplicate_drops << "\n"
+                  << "gaps=" << arb.gap_count << "\n"
+                  << "feed_arb_verify=PASS\n";
+        return 0;
+    }
+    return 1;
+}
+
 }
 
 extern "C" {
@@ -639,6 +722,38 @@ int qfx_c_quant_stats(int64_t init_cash, int64_t final_eq, int64_t max_dd, int64
     return 0;
 }
 
+int qfx_c_ofi_update(const int64_t* bids, const uint64_t* bid_sizes, const int64_t* asks, const uint64_t* ask_sizes, size_t count, int64_t* out_l1, int64_t* out_multi) {
+    if (!bids || !bid_sizes || !asks || !ask_sizes || !out_l1 || !out_multi || count == 0) return -1;
+    static qfx::OrderFlowImbalanceTracker<5> tracker;
+    auto sig = tracker.update(bids, bid_sizes, asks, ask_sizes, count);
+    *out_l1 = sig.l1_ofi;
+    *out_multi = sig.multi_level_ofi;
+    return 0;
+}
+
+int qfx_c_venue_place_passive(uint64_t cl_id, int8_t side, int64_t price, uint64_t qty) {
+    return qfx::global_venue_sim.place_passive_order(cl_id, side, price, qty);
+}
+
+int qfx_c_venue_trade(int8_t trade_side, int64_t trade_price, uint64_t trade_qty, uint64_t now_ns, qfx::SbeExecutionReport* out_exec) {
+    if (!out_exec) return -1;
+    *out_exec = qfx::global_venue_sim.on_market_trade(trade_side, trade_price, trade_qty, now_ns);
+    return 0;
+}
+
+int64_t qfx_c_venue_markout(size_t slot, int64_t current_mid) {
+    return qfx::global_venue_sim.evaluate_markout(slot, current_mid);
+}
+
+int qfx_c_feed_arbitrate(uint8_t feed_id, uint64_t seq, uint8_t* out_action, uint64_t* out_next_expected) {
+    if (!out_action || !out_next_expected) return -1;
+    static qfx::FeedArbitrator<256> global_arb;
+    auto res = global_arb.process_packet(feed_id, seq);
+    *out_action = static_cast<uint8_t>(res.action);
+    *out_next_expected = res.next_expected;
+    return 0;
+}
+
 }
 
 int main(int argc, char* argv[]) {
@@ -691,6 +806,15 @@ int main(int argc, char* argv[]) {
     }
     if (cmd == "venue-sim-demo") {
         return qfx::run_venue_sim_demo();
+    }
+    if (cmd == "ofi-demo") {
+        return qfx::run_ofi_demo();
+    }
+    if (cmd == "adverse-sim-demo") {
+        return qfx::run_adverse_sim_demo();
+    }
+    if (cmd == "feed-arb-demo") {
+        return qfx::run_feed_arb_demo();
     }
     std::cerr << "unknown hybrid command\n";
     return 1;
