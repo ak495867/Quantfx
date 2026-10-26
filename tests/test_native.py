@@ -9,6 +9,9 @@ from runtime.qfx_native import (
     NativeEvent,
     NativeOrder,
     NativeVenueQuote,
+    NativeSbeHeader,
+    NativeSbeOrderMessage,
+    NativeSbeExecutionReport,
     QfxNative,
 )
 
@@ -85,6 +88,29 @@ def main() -> int:
     var_99, cvar_99 = native.compute_var(returns)
     assert var_99 > 0
     assert cvar_99 >= var_99
+
+    sbe_req = NativeSbeOrderMessage(
+        header=NativeSbeHeader(56, 101, 1, 1),
+        timestamp_ns=1000,
+        client_order_id=99,
+        symbol=1,
+        price=108005,
+        quantity=500000,
+        side=1,
+        time_in_force=0,
+        padding=0,
+        reserved=0,
+    )
+    sbe_rep = native.venue_match(sbe_req, 2000)
+    assert sbe_rep.client_order_id == 99
+    assert sbe_rep.exec_price == 108005
+    assert sbe_rep.exec_quantity == 500000
+
+    sharpe, sortino = native.quant_stats(
+        100000000, 110000000, 2000000, 15000000, 5000000, 150
+    )
+    assert sharpe > 0.0
+    assert sortino > 0.0
 
     print("PYTHON_NATIVE_ALL_PASS")
     return 0

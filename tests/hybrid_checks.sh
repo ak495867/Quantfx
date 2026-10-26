@@ -12,5 +12,8 @@ cd "$root"
 ./build/qfx_hybrid simd-benchmark 100000 | grep -q 'simd_verify=PASS'
 ./build/qfx_hybrid wal-demo | grep -q 'wal_verify=PASS'
 ./build/qfx_hybrid var-demo | grep -q 'var_verify=PASS'
+./build/qfx_hybrid net-demo | grep -q 'net_socket=PASS'
+./build/qfx_hybrid latency-profile 1000 | grep -q 'profile_verify=PASS'
+./build/qfx_hybrid venue-sim-demo | grep -q 'venue_sim_verify=PASS'
 python3 tests/test_native.py | grep -q 'PYTHON_NATIVE_ALL_PASS'
 echo HYBRID_PASS

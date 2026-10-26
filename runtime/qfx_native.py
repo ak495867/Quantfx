@@ -67,6 +67,45 @@ class NativeVenueSplit(ctypes.Structure):
     ]
 
 
+class NativeSbeHeader(ctypes.Structure):
+    _fields_ = [
+        ("block_length", ctypes.c_uint16),
+        ("template_id", ctypes.c_uint16),
+        ("schema_id", ctypes.c_uint16),
+        ("version", ctypes.c_uint16),
+    ]
+
+
+class NativeSbeOrderMessage(ctypes.Structure):
+    _fields_ = [
+        ("header", NativeSbeHeader),
+        ("timestamp_ns", ctypes.c_uint64),
+        ("client_order_id", ctypes.c_uint64),
+        ("symbol", ctypes.c_uint64),
+        ("price", ctypes.c_int64),
+        ("quantity", ctypes.c_uint64),
+        ("side", ctypes.c_int8),
+        ("time_in_force", ctypes.c_uint8),
+        ("padding", ctypes.c_uint16),
+        ("reserved", ctypes.c_uint32),
+    ]
+
+
+class NativeSbeExecutionReport(ctypes.Structure):
+    _fields_ = [
+        ("header", NativeSbeHeader),
+        ("timestamp_ns", ctypes.c_uint64),
+        ("client_order_id", ctypes.c_uint64),
+        ("exec_id", ctypes.c_uint64),
+        ("exec_price", ctypes.c_int64),
+        ("exec_quantity", ctypes.c_uint64),
+        ("exec_type", ctypes.c_uint8),
+        ("side", ctypes.c_int8),
+        ("reserved", ctypes.c_uint16),
+        ("padding", ctypes.c_uint32),
+    ]
+
+
 class QfxNative:
     def __init__(self, lib_path: str | os.PathLike[str] | None = None):
         if lib_path is None:
@@ -153,6 +192,25 @@ class QfxNative:
         ]
         self.lib.qfx_c_var_compute.restype = ctypes.c_int
 
+        self.lib.qfx_c_venue_match.argtypes = [
+            ctypes.POINTER(NativeSbeOrderMessage),
+            ctypes.c_uint64,
+            ctypes.POINTER(NativeSbeExecutionReport),
+        ]
+        self.lib.qfx_c_venue_match.restype = ctypes.c_int
+
+        self.lib.qfx_c_quant_stats.argtypes = [
+            ctypes.c_int64,
+            ctypes.c_int64,
+            ctypes.c_int64,
+            ctypes.c_int64,
+            ctypes.c_int64,
+            ctypes.c_uint64,
+            ctypes.POINTER(ctypes.c_double),
+            ctypes.POINTER(ctypes.c_double),
+        ]
+        self.lib.qfx_c_quant_stats.restype = ctypes.c_int
+
     def now_ns(self) -> int:
         return int(self.lib.qfx_c_tsc_now_ns())
 
@@ -220,3 +278,36 @@ class QfxNative:
         if rc != 0:
             raise RuntimeError("var compute failed")
         return out_var.value, out_cvar.value
+
+    def venue_match(self, order: NativeSbeOrderMessage, now_ns: int) -> NativeSbeExecutionReport:
+        report = NativeSbeExecutionReport()
+        rc = self.lib.qfx_c_venue_match(ctypes.byref(order), now_ns, ctypes.byref(report))
+        if rc != 0:
+            raise RuntimeError("venue match failed")
+        return report
+
+    def quant_stats(
+        self,
+        init_cash: int,
+        final_eq: int,
+        max_dd: int,
+        g_prof: int,
+        g_loss: int,
+        trades: int,
+    ) -> tuple[float, float]:
+        out_sharpe = ctypes.c_double(0.0)
+        out_sortino = ctypes.c_double(0.0)
+        rc = self.lib.qfx_c_quant_stats(
+            init_cash,
+            final_eq,
+            max_dd,
+            g_prof,
+            g_loss,
+            trades,
+            ctypes.byref(out_sharpe),
+            ctypes.byref(out_sortino),
+        )
+        if rc != 0:
+            raise RuntimeError("quant stats failed")
+        return out_sharpe.value, out_sortino.value
+
