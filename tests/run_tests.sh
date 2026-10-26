@@ -25,12 +25,12 @@ route_sell=$(./build/qfx route fixtures/broker_quotes.csv sell)
 grep -q 'broker=BROKER_SMALL' <<<"$route_sell"
 grep -q 'score=300' <<<"$route_sell"
 grep -q 'price=107995' <<<"$route_sell"
-rm -f data/live.journal data/live.checkpoint fixtures/orders.pipe /tmp/qfx_orders.out /tmp/qfx_live.out
-mkfifo fixtures/orders.pipe
-cat fixtures/orders.pipe >/tmp/qfx_orders.out &
+rm -f data/live.journal data/live.checkpoint /tmp/qfx_orders.pipe /tmp/qfx_orders.out /tmp/qfx_live.out
+mkfifo /tmp/qfx_orders.pipe
+cat /tmp/qfx_orders.pipe >/tmp/qfx_orders.out &
 catpid=$!
 sleep 1
-./build/qfx live fixtures/eurusd_sample.csv fixtures/orders.pipe >/tmp/qfx_live.out
+./build/qfx live fixtures/eurusd_sample.csv /tmp/qfx_orders.pipe >/tmp/qfx_live.out
 wait "$catpid"
 grep -q 'BUY ,1,1000,108035,1000001000,2' /tmp/qfx_orders.out
 grep -q 'SELL,5,1000,107970,1000005000,6' /tmp/qfx_orders.out
@@ -44,5 +44,5 @@ rm -f data/live.journal data/live.checkpoint
 stream_output=$(cat fixtures/eurusd_sample.csv | ./build/qfx live - - 2>/dev/null)
 grep -q 'BUY ,1,1000,108035,1000001000,2' <<<"$stream_output"
 grep -q 'SELL,5,1000,107970,1000005000,6' <<<"$stream_output"
-rm -f fixtures/orders.pipe
+rm -f /tmp/qfx_orders.pipe
 echo PASS

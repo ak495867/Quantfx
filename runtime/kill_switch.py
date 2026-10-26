@@ -25,6 +25,8 @@ class KillSwitch:
         self.path = Path(path)
         self.key = key
         self.max_age_ns = max_age_ns
+        self._cached_mtime: int | None = None
+        self._cached_payload: dict | None = None
 
     def _sign(self, payload: dict) -> str:
         encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
@@ -37,8 +39,13 @@ class KillSwitch:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         temporary = self.path.with_suffix(self.path.suffix + ".new")
         temporary.write_text(json.dumps(record, sort_keys=True) + "\n")
-        os.chmod(temporary, 0o600)
+        try:
+            os.chmod(temporary, 0o600)
+        except OSError:
+            pass
         os.replace(temporary, self.path)
+        self._cached_mtime = None
+        self._cached_payload = None
 
     def trip(self, reason: str) -> None:
         self._write(True, reason)
@@ -48,13 +55,31 @@ class KillSwitch:
 
     def status(self) -> dict:
         if not self.path.exists():
+            self._cached_mtime = None
+            self._cached_payload = None
             return {"enabled": True, "reason": "missing-kill-switch"}
+        try:
+            mtime = self.path.stat().st_mtime_ns
+        except OSError:
+            mtime = None
+
+        if (
+            mtime is not None
+            and mtime == self._cached_mtime
+            and self._cached_payload is not None
+        ):
+            if time.time_ns() - int(self._cached_payload["updated_ns"]) > self.max_age_ns:
+                return {"enabled": True, "reason": "stale-kill-switch"}
+            return self._cached_payload
+
         record = json.loads(self.path.read_text())
         payload = {key: record[key] for key in ("enabled", "reason", "updated_ns")}
         if not hmac.compare_digest(record.get("signature", ""), self._sign(payload)):
             return {"enabled": True, "reason": "invalid-kill-switch-signature"}
         if time.time_ns() - int(record["updated_ns"]) > self.max_age_ns:
             return {"enabled": True, "reason": "stale-kill-switch"}
+        self._cached_mtime = mtime
+        self._cached_payload = payload
         return payload
 
     def can_trade(self) -> bool:

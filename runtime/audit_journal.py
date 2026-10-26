@@ -20,6 +20,7 @@ class EncryptedAuditJournal:
             raise ValueError("AES key must be 16, 24, or 32 bytes")
         self.path = Path(path)
         self.key = key
+        self.aesgcm = AESGCM(key)
         self.chain = "0" * 64
         self.count = 0
         self._verify_existing()
@@ -41,14 +42,14 @@ class EncryptedAuditJournal:
                 ).hexdigest()
                 if record["chain"] != expected_chain:
                     raise AuditIntegrityError("audit chain verification failed")
-                AESGCM(self.key).decrypt(nonce, ciphertext, self.chain.encode())
+                self.aesgcm.decrypt(nonce, ciphertext, self.chain.encode())
                 self.chain = record["chain"]
                 self.count += 1
 
     def append(self, event: dict) -> str:
         payload = json.dumps(event, sort_keys=True, separators=(",", ":")).encode()
         nonce = secrets.token_bytes(12)
-        ciphertext = AESGCM(self.key).encrypt(nonce, payload, self.chain.encode())
+        ciphertext = self.aesgcm.encrypt(nonce, payload, self.chain.encode())
         chain_input = base64.b64encode(nonce + ciphertext).decode()
         chain = hashlib.sha256((self.chain + chain_input).encode()).hexdigest()
         record = {

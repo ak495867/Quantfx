@@ -1,4 +1,5 @@
 %include "qfx.inc"
+default rel
 
 global _start
 
@@ -111,6 +112,11 @@ route_age resq 1
 route_capacity resq 1
 route_broker_start resq 1
 route_broker_len resq 1
+stream_buf resb 65536
+stream_pos resq 1
+stream_len resq 1
+ingest_buf resb 65536
+ingest_pos resq 1
 
 section .text
 
@@ -399,15 +405,11 @@ qfx_print_cstr:
 qfx_print_u64:
     push rbx
     push r12
+    push r13
     mov r12,rdi
-    cmp r12,0
-    jge .positive_value
-    mov byte [num_buf],'-'
-    mov eax,SYS_WRITE
-    mov edi,STDOUT
-    lea rsi,[num_buf]
-    mov edx,1
-    syscall
+    mov r13,r12
+    test r13,r13
+    jns .positive_value
     neg r12
 .positive_value:
     lea rbx,[num_buf+31]
@@ -417,7 +419,8 @@ qfx_print_u64:
     test rax,rax
     jnz .digits
     mov byte [rbx],'0'
-    jmp .emit
+    dec rbx
+    jmp .check_sign
 .digits:
     xor edx,edx
     mov ecx,10
@@ -427,14 +430,20 @@ qfx_print_u64:
     dec rbx
     test rax,rax
     jnz .digits
-    inc rbx
+.check_sign:
+    test r13,r13
+    jns .emit
+    mov byte [rbx],'-'
+    dec rbx
 .emit:
+    inc rbx
     mov rdx,num_buf+32
     sub rdx,rbx
     mov eax,SYS_WRITE
     mov edi,STDOUT
     mov rsi,rbx
     syscall
+    pop r13
     pop r12
     pop rbx
     ret
@@ -648,30 +657,46 @@ qfx_reset_state:
     mov qword [invalid_lines],0
     mov qword [sequence_counter],0
     mov qword [order_counter],0
+    mov qword [stream_pos],0
+    mov qword [stream_len],0
+    mov qword [ingest_pos],0
     ret
 
 qfx_read_live_line:
     push r12
+    push r13
     lea rbx,[line_buf]
     xor r12d,r12d
-.read:
+.char_loop:
+    mov rax,[stream_pos]
+    cmp rax,[stream_len]
+    jb .have_byte
     mov eax,SYS_READ
     mov rdi,[input_fd]
-    lea rsi,[rbx+r12]
-    mov edx,1
+    lea rsi,[stream_buf]
+    mov edx,65536
     syscall
     test rax,rax
     jle .eof
-    cmp byte [rbx+r12],10
+    mov [stream_len],rax
+    mov qword [stream_pos],0
+.have_byte:
+    lea r13,[stream_buf]
+    add r13,[stream_pos]
+    mov al,[r13]
+    inc qword [stream_pos]
+    mov [rbx+r12],al
+    cmp al,10
     je .done
     inc r12
     cmp r12,MAX_LINE-2
-    jb .read
+    jb .char_loop
     mov byte [rbx+r12],10
 .done:
     mov rax,rbx
     add rax,r12
     inc rax
+    pop r13
     pop r12
     ret
 .eof:
@@ -681,10 +706,12 @@ qfx_read_live_line:
     mov rax,rbx
     add rax,r12
     inc rax
+    pop r13
     pop r12
     ret
 .empty:
     xor eax,eax
+    pop r13
     pop r12
     ret
 
@@ -1488,6 +1515,15 @@ qfx_write_qfx_header:
     ret
 
 qfx_finalize_qfx:
+    mov rdx,[ingest_pos]
+    test rdx,rdx
+    jz .seek
+    mov eax,SYS_WRITE
+    mov rdi,[output_fd]
+    lea rsi,[ingest_buf]
+    syscall
+    mov qword [ingest_pos],0
+.seek:
     mov eax,SYS_LSEEK
     mov rdi,[output_fd]
     mov esi,40
@@ -1596,11 +1632,31 @@ qfx_emit_order:
     ret
 
 qfx_write_qfx_event:
+    push rsi
+    push rdi
+    push rcx
+    mov rax,[ingest_pos]
+    cmp rax,65536-EVENT_SIZE
+    jb .copy
+    push rax
     mov eax,SYS_WRITE
     mov rdi,[output_fd]
-    lea rsi,[current_event]
-    mov edx,EVENT_SIZE
+    lea rsi,[ingest_buf]
+    mov edx,[rsp]
     syscall
+    add rsp,8
+    mov qword [ingest_pos],0
+.copy:
+    lea rdi,[ingest_buf]
+    add rdi,[ingest_pos]
+    lea rsi,[current_event]
+    mov rcx,EVENT_SIZE
+    cld
+    rep movsb
+    add qword [ingest_pos],EVENT_SIZE
+    pop rcx
+    pop rdi
+    pop rsi
     ret
 
 cmd_validate db "validate",0
