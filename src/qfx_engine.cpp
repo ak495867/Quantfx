@@ -4,6 +4,11 @@
 #include "qfx_tsc.hpp"
 #include "qfx_tuning.hpp"
 #include "qfx_sbe.hpp"
+#include "qfx_risk_gateway.hpp"
+#include "qfx_sor.hpp"
+#include "qfx_simd.hpp"
+#include "qfx_wal.hpp"
+#include "qfx_risk_var.hpp"
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -22,6 +27,8 @@ namespace qfx {
 
 static TscClock global_tsc;
 static L2OrderBook<10> global_l2_book;
+static PreTradeRiskGateway global_risk_gw;
+static BinaryWal global_wal;
 
 class MicrostructureAlpha {
 public:
@@ -273,6 +280,121 @@ static int run_sbe_demo() {
     return 1;
 }
 
+static int run_risk_demo() {
+    PreTradeRiskGateway gw;
+    Order normal_ord{1, 10000, 108020, 0, 0, 1, 101};
+    auto v1 = gw.evaluate(normal_ord, 108018, 0, 1000000);
+
+    Order fat_finger{1, 10000, 108500, 0, 0, 1, 102};
+    auto v2 = gw.evaluate(fat_finger, 108018, 0, 1000100);
+
+    Order wash_sell{-1, 10000, 108020, 0, 0, 1, 103};
+    auto v3 = gw.evaluate(wash_sell, 108018, 0, 1000200);
+
+    if (v1 == RiskVerdict::Approved &&
+        v2 == RiskVerdict::FatFingerPrice &&
+        v3 == RiskVerdict::SelfMatchDetected) {
+        std::cout << "risk_gateway=PASS\n";
+        return 0;
+    }
+    return 1;
+}
+
+static int run_sor_demo() {
+    SmartOrderRouter sor;
+    std::vector<VenueQuote> venues = {
+        {1, 108000, 108015, 500000, 2, 1, 0},
+        {2, 108005, 108012, 1000000, 1, 1, 0},
+        {3, 107995, 108018, 2000000, 3, 2, 0}
+    };
+    auto splits = sor.split_clip(1, 1200000, venues);
+    uint64_t total = 0;
+    for (const auto& s : splits) {
+        total += s.quantity;
+    }
+    if (total == 1200000 && splits.size() >= 2) {
+        std::cout << "sor_venues_used=" << splits.size() << "\n"
+                  << "sor_total_filled=" << total << "\n"
+                  << "sor_verify=PASS\n";
+        return 0;
+    }
+    return 1;
+}
+
+static int run_simd_demo(size_t iterations) {
+    alignas(32) int64_t asks[4] = {108015, 108020, 108012, 108018};
+    alignas(32) int64_t bids[4] = {108000, 108005, 108002, 107995};
+    alignas(32) int64_t lats[4] = {800, 1200, 300, 500};
+    alignas(32) int64_t slips[4] = {3, 1, 8, 2};
+    alignas(32) int64_t fees[4] = {2, 1, 0, 1};
+    alignas(32) int64_t scores[4] = {0, 0, 0, 0};
+
+    auto t_start = std::chrono::high_resolution_clock::now();
+    for (size_t i = 0; i < iterations; ++i) {
+        score_4_venues_avx2(asks, bids, lats, slips, fees, scores);
+    }
+    auto t_end = std::chrono::high_resolution_clock::now();
+
+    auto elapsed_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(t_end - t_start).count();
+    double secs = static_cast<double>(elapsed_ns) / 1e9;
+    double ops_per_sec = (static_cast<double>(iterations * 4) / secs) / 1e6;
+
+    std::cout << "simd_iterations=" << iterations << "\n"
+              << "simd_best_score=" << scores[2] << "\n"
+              << "simd_mops=" << ops_per_sec << "\n"
+              << "simd_verify=PASS\n";
+    return 0;
+}
+
+static int run_wal_demo() {
+    BinaryWal wal;
+    const char* test_path = "/tmp/qfx_test.wal";
+    unlink(test_path);
+
+    if (!wal.open_wal(test_path, 1024)) {
+        return 1;
+    }
+
+    Order o1{1, 100000, 108020, 0, 0, 1, 501};
+    Order o2{-1, 50000, 108010, 0, 0, 1, 502};
+    wal.append(o1, 1000000);
+    wal.append(o2, 1000050);
+    wal.close_wal();
+
+    BinaryWal recovery_wal;
+    if (!recovery_wal.open_wal(test_path, 1024)) {
+        return 1;
+    }
+    std::vector<WalEntry> recovered;
+    recovery_wal.recover(recovered);
+    recovery_wal.close_wal();
+    unlink(test_path);
+
+    if (recovered.size() == 2 && recovered[0].order.client_order_id == 501 && recovered[1].order.client_order_id == 502) {
+        std::cout << "wal_recovered_entries=" << recovered.size() << "\n"
+                  << "wal_verify=PASS\n";
+        return 0;
+    }
+    return 1;
+}
+
+static int run_var_demo() {
+    StreamingVaR<500> var_engine;
+    for (int i = 0; i < 200; ++i) {
+        int64_t ret = (i % 2 == 0) ? (i * 2) : (-i * 3);
+        var_engine.push_return(ret);
+    }
+    auto metrics = var_engine.calculate();
+    if (metrics.sample_count == 200 && metrics.var_99 > 0 && metrics.cvar_99 >= metrics.var_99) {
+        std::cout << "var_sample_count=" << metrics.sample_count << "\n"
+                  << "var_99=" << metrics.var_99 << "\n"
+                  << "cvar_99=" << metrics.cvar_99 << "\n"
+                  << "var_verify=PASS\n";
+        return 0;
+    }
+    return 1;
+}
+
 }
 
 extern "C" {
@@ -322,6 +444,39 @@ int qfx_c_sbe_decode_order(const uint8_t* in_buf, size_t buf_len, qfx::Order* or
     return qfx::decode_sbe_order(in_buf, buf_len, *order, *ts_ns) ? 0 : -1;
 }
 
+int qfx_c_risk_eval(const qfx::Order* order, int64_t mid_price, int64_t pos, uint64_t now_ns) {
+    if (!order) return -1;
+    return static_cast<int>(qfx::global_risk_gw.evaluate(*order, mid_price, pos, now_ns));
+}
+
+int qfx_c_sor_split(int64_t side, uint64_t target_qty, const qfx::VenueQuote* quotes, size_t count, qfx::VenueSplit* out_splits, size_t max_splits) {
+    if (!quotes || !out_splits || count == 0 || max_splits == 0) return -1;
+    std::vector<qfx::VenueQuote> venues(quotes, quotes + count);
+    qfx::SmartOrderRouter router;
+    auto splits = router.split_clip(side, target_qty, venues);
+    size_t copy_n = std::min(splits.size(), max_splits);
+    for (size_t i = 0; i < copy_n; ++i) {
+        out_splits[i] = splits[i];
+    }
+    return static_cast<int>(copy_n);
+}
+
+void qfx_c_simd_score4(const int64_t* asks, const int64_t* bids, const int64_t* lats, const int64_t* slips, const int64_t* fees, int64_t* out_scores) {
+    qfx::score_4_venues_avx2(asks, bids, lats, slips, fees, out_scores);
+}
+
+int qfx_c_var_compute(const int64_t* returns, size_t count, int64_t* out_var99, int64_t* out_cvar99) {
+    if (!returns || !out_var99 || !out_cvar99 || count == 0) return -1;
+    qfx::StreamingVaR<500> var_engine;
+    for (size_t i = 0; i < count; ++i) {
+        var_engine.push_return(returns[i]);
+    }
+    auto metrics = var_engine.calculate();
+    *out_var99 = metrics.var_99;
+    *out_cvar99 = metrics.cvar_99;
+    return 0;
+}
+
 }
 
 int main(int argc, char* argv[]) {
@@ -348,6 +503,22 @@ int main(int argc, char* argv[]) {
     }
     if (cmd == "sbe-demo") {
         return qfx::run_sbe_demo();
+    }
+    if (cmd == "risk-demo") {
+        return qfx::run_risk_demo();
+    }
+    if (cmd == "sor-demo") {
+        return qfx::run_sor_demo();
+    }
+    if (cmd == "simd-benchmark") {
+        size_t iters = (argc >= 3) ? std::stoull(argv[2]) : 5000000;
+        return qfx::run_simd_demo(iters);
+    }
+    if (cmd == "wal-demo") {
+        return qfx::run_wal_demo();
+    }
+    if (cmd == "var-demo") {
+        return qfx::run_var_demo();
     }
     std::cerr << "unknown hybrid command\n";
     return 1;

@@ -5,7 +5,7 @@ LD=ld
 CXX=g++
 ASFLAGS=-f elf64 -Iinclude/
 LDFLAGS=-dynamic-linker /lib64/ld-linux-x86-64.so.2
-CXXFLAGS=-O3 -std=c++20 -Wall -Wextra -pthread -fPIC -Iinclude/
+CXXFLAGS=-O3 -std=c++20 -Wall -Wextra -pthread -mavx2 -fPIC -Iinclude/
 LDFLAGS_CPP=-pthread -lrt
 
 all: $(BUILD)/$(PROJECT) $(BUILD)/qfx_hybrid $(BUILD)/libqfx.so

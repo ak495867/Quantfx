@@ -47,6 +47,26 @@ class NativeReport(ctypes.Structure):
     ]
 
 
+class NativeVenueQuote(ctypes.Structure):
+    _fields_ = [
+        ("venue_id", ctypes.c_uint32),
+        ("bid", ctypes.c_int64),
+        ("ask", ctypes.c_int64),
+        ("capacity", ctypes.c_uint64),
+        ("fee", ctypes.c_int64),
+        ("slippage", ctypes.c_int64),
+        ("score", ctypes.c_int64),
+    ]
+
+
+class NativeVenueSplit(ctypes.Structure):
+    _fields_ = [
+        ("venue_id", ctypes.c_uint32),
+        ("quantity", ctypes.c_uint64),
+        ("expected_price", ctypes.c_int64),
+    ]
+
+
 class QfxNative:
     def __init__(self, lib_path: str | os.PathLike[str] | None = None):
         if lib_path is None:
@@ -97,6 +117,42 @@ class QfxNative:
         ]
         self.lib.qfx_c_sbe_decode_order.restype = ctypes.c_int
 
+        self.lib.qfx_c_risk_eval.argtypes = [
+            ctypes.POINTER(NativeOrder),
+            ctypes.c_int64,
+            ctypes.c_int64,
+            ctypes.c_uint64,
+        ]
+        self.lib.qfx_c_risk_eval.restype = ctypes.c_int
+
+        self.lib.qfx_c_sor_split.argtypes = [
+            ctypes.c_int64,
+            ctypes.c_uint64,
+            ctypes.POINTER(NativeVenueQuote),
+            ctypes.c_size_t,
+            ctypes.POINTER(NativeVenueSplit),
+            ctypes.c_size_t,
+        ]
+        self.lib.qfx_c_sor_split.restype = ctypes.c_int
+
+        self.lib.qfx_c_simd_score4.argtypes = [
+            ctypes.POINTER(ctypes.c_int64),
+            ctypes.POINTER(ctypes.c_int64),
+            ctypes.POINTER(ctypes.c_int64),
+            ctypes.POINTER(ctypes.c_int64),
+            ctypes.POINTER(ctypes.c_int64),
+            ctypes.POINTER(ctypes.c_int64),
+        ]
+        self.lib.qfx_c_simd_score4.restype = None
+
+        self.lib.qfx_c_var_compute.argtypes = [
+            ctypes.POINTER(ctypes.c_int64),
+            ctypes.c_size_t,
+            ctypes.POINTER(ctypes.c_int64),
+            ctypes.POINTER(ctypes.c_int64),
+        ]
+        self.lib.qfx_c_var_compute.restype = ctypes.c_int
+
     def now_ns(self) -> int:
         return int(self.lib.qfx_c_tsc_now_ns())
 
@@ -134,3 +190,33 @@ class QfxNative:
         if rc != 0:
             raise RuntimeError("decode failed")
         return bytes(buf[:encoded_len]), decoded_order, decoded_ts.value
+
+    def eval_risk(self, order: NativeOrder, mid: int, pos: int, now_ns: int) -> int:
+        return int(self.lib.qfx_c_risk_eval(ctypes.byref(order), mid, pos, now_ns))
+
+    def split_venues(self, side: int, qty: int, quotes: list[NativeVenueQuote]) -> list[NativeVenueSplit]:
+        in_arr = (NativeVenueQuote * len(quotes))(*quotes)
+        out_arr = (NativeVenueSplit * 16)()
+        n = self.lib.qfx_c_sor_split(side, qty, in_arr, len(quotes), out_arr, 16)
+        if n < 0:
+            raise RuntimeError("sor split failed")
+        return [out_arr[i] for i in range(n)]
+
+    def score_simd4(self, asks: list[int], bids: list[int], lats: list[int], slips: list[int], fees: list[int]) -> list[int]:
+        c_asks = (ctypes.c_int64 * 4)(*asks)
+        c_bids = (ctypes.c_int64 * 4)(*bids)
+        c_lats = (ctypes.c_int64 * 4)(*lats)
+        c_slips = (ctypes.c_int64 * 4)(*slips)
+        c_fees = (ctypes.c_int64 * 4)(*fees)
+        c_out = (ctypes.c_int64 * 4)()
+        self.lib.qfx_c_simd_score4(c_asks, c_bids, c_lats, c_slips, c_fees, c_out)
+        return [c_out[i] for i in range(4)]
+
+    def compute_var(self, returns: list[int]) -> tuple[int, int]:
+        c_ret = (ctypes.c_int64 * len(returns))(*returns)
+        out_var = ctypes.c_int64(0)
+        out_cvar = ctypes.c_int64(0)
+        rc = self.lib.qfx_c_var_compute(c_ret, len(returns), ctypes.byref(out_var), ctypes.byref(out_cvar))
+        if rc != 0:
+            raise RuntimeError("var compute failed")
+        return out_var.value, out_cvar.value
