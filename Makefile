@@ -2,10 +2,13 @@ PROJECT=qfx
 BUILD=build
 NASM=nasm
 LD=ld
+CXX=g++
 ASFLAGS=-f elf64 -Iinclude/
 LDFLAGS=-dynamic-linker /lib64/ld-linux-x86-64.so.2
+CXXFLAGS=-O3 -std=c++20 -Wall -Wextra -pthread -Iinclude/
+LDFLAGS_CPP=-pthread -lrt
 
-all: $(BUILD)/$(PROJECT)
+all: $(BUILD)/$(PROJECT) $(BUILD)/qfx_hybrid
 
 platform: windows-pe uefi bios darwin-object darwin-arm64-source nt-syscalls-object timer-object kill-switch-object
 
@@ -57,6 +60,15 @@ $(BUILD)/qfx-timer.o: platform/qfx_timer.asm | $(BUILD)
 $(BUILD)/qfx-kill-switch.o: platform/qfx_kill_switch.asm | $(BUILD)
 	$(NASM) -f elf64 $< -o $@
 
+$(BUILD)/qfx_asm_core.o: src/qfx_asm_core.asm | $(BUILD)
+	$(NASM) $(ASFLAGS) $< -o $@
+
+$(BUILD)/qfx_engine.o: src/qfx_engine.cpp include/qfx.hpp include/qfx_ring.hpp | $(BUILD)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(BUILD)/qfx_hybrid: $(BUILD)/qfx_engine.o $(BUILD)/qfx_asm_core.o
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS_CPP)
+
 $(BUILD)/$(PROJECT): $(BUILD)/qfx.o
 	$(LD) $(LDFLAGS) $< -o $@
 
@@ -65,6 +77,7 @@ check: all
 	./tests/platform_checks.sh
 	python3 tests/runtime_checks.py
 	./tests/kill_switch_checks.sh
+	./tests/hybrid_checks.sh
 
 clean:
 	rm -rf $(BUILD)
